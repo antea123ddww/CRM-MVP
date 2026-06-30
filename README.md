@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CRM MVP
 
 CRM MVP is a web-based Customer Relationship Management platform for managing companies, contacts, leads, deals, tasks, activities, notes, users, settings and reports.
@@ -89,3 +90,6 @@ The scheduled task runs `backup.bat` every day at 02:00 and keeps the same 30-da
 - Scalability: `nginx.conf` uses upstream blocks, and `docker-compose.scale.yml` provides a replica-ready override for frontend/backend services.
 - Multi-tenant readiness: `Tenant` and optional `tenantId` fields exist on users and CRM records; services apply tenant filters when a logged-in user has a tenant.
 - Backup: `backup.bat` creates PostgreSQL backups and removes `.sql` files older than 30 days.
+=======
+# CRM-MVP
+>>>>>>> 2ca49411928ab804a71cb6de0e279a5d896ff59e
