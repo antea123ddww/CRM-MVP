@@ -1,0 +1,85 @@
+{
+  "createdAt": "2026-06-29T12:45:09.721Z",
+  "leadCount": 3,
+  "leads": [
+    {
+      "id": "93fc7ca7-8a51-4fd5-bf0c-48925ad26837",
+      "status": "NEW",
+      "source": "Website",
+      "companyId": "1dc2838d-db33-486b-bbf9-7137d9af7869",
+      "tenantId": "tenant_default"
+    },
+    {
+      "id": "d02e6ddf-9d23-4d9f-86bd-7ff7bc8ed001",
+      "status": "NEGOTIATION",
+      "source": "LinkedIn",
+      "companyId": "da6cff7d-3b32-4469-8a5e-653095ba2474",
+      "tenantId": "tenant_default"
+    },
+    {
+      "id": "afabf524-863b-4a77-b453-2dd98918e208",
+      "status": "QUALIFIED",
+      "source": "Referral",
+      "companyId": "983a7c2f-44b4-4d2f-a78c-d816d5a5315c",
+      "tenantId": "tenant_default"
+    }
+  ],
+  "leadStatuses": [
+    {
+      "id": 1,
+      "name": "New",
+      "code": "NEW",
+      "order": 1,
+      "isFinal": false,
+      "createdAt": "2026-06-26T16:48:43.496Z"
+    },
+    {
+      "id": 2,
+      "name": "Contacted",
+      "code": "CONTACTED",
+      "order": 2,
+      "isFinal": false,
+      "createdAt": "2026-06-26T16:48:43.496Z"
+    },
+    {
+      "id": 3,
+      "name": "Qualified",
+      "code": "QUALIFIED",
+      "order": 3,
+      "isFinal": false,
+      "createdAt": "2026-06-26T16:48:43.496Z"
+    },
+    {
+      "id": 4,
+      "name": "Proposal Sent",
+      "code": "PROPOSAL_SENT",
+      "order": 4,
+      "isFinal": false,
+      "createdAt": "2026-06-26T16:48:43.496Z"
+    },
+    {
+      "id": 5,
+      "name": "Negotiation",
+      "code": "NEGOTIATION",
+      "order": 5,
+      "isFinal": false,
+      "createdAt": "2026-06-26T16:48:43.496Z"
+    },
+    {
+      "id": 6,
+      "name": "Converted",
+      "code": "CONVERTED",
+      "order": 6,
+      "isFinal": true,
+      "createdAt": "2026-06-26T16:48:43.496Z"
+    },
+    {
+      "id": 7,
+      "name": "Lost",
+      "code": "LOST",
+      "order": 7,
+      "isFinal": true,
+      "createdAt": "2026-06-26T16:48:43.496Z"
+    }
+  ]
+}

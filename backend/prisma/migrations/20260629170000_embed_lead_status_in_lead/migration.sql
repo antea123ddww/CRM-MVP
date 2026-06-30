@@ -1,0 +1,9 @@
+ALTER TABLE "Lead" DROP CONSTRAINT IF EXISTS "Lead_statusId_fkey";
+
+DROP INDEX IF EXISTS "Lead_statusId_idx";
+
+ALTER TABLE "Lead" DROP COLUMN IF EXISTS "statusId";
+
+DROP TABLE IF EXISTS "LeadStatus";
+
+DROP SEQUENCE IF EXISTS "LeadStatus_id_seq";

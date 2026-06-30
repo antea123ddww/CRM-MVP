@@ -1,0 +1,12 @@
+services:
+  backend:
+    container_name: null
+    ports: []
+    deploy:
+      replicas: 2
+
+  frontend:
+    container_name: null
+    ports: []
+    deploy:
+      replicas: 2

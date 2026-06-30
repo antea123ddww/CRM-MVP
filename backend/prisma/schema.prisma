@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id         String     @id @default(uuid())
+  name       String
+  slug       String     @unique
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  activities Activity[]
+  auditLogs  AuditLog[]
+  companies  Company[]
+  contacts   Contact[]
+  deals      Deal[]
+  leads      Lead[]
+  notes      Note[]
+  settings   Setting[]
+  tasks      Task[]
+  users      User[]
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  firstName String
+  lastName  String
+  email     String     @unique
+  password  String
+  role      Role       @default(SALES)
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  tenantId  String?
+  companies Company[]
+  leads     Lead[]
+  auditLogs AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+  refreshTokens RefreshToken[]
+  tasks     Task[]
+  tenant    Tenant?    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Company {
+  id         String     @id @default(uuid()) @db.Uuid
+  name       String
+  taxNumber  String?
+  industry   String?
+  website    String?
+  phone      String?
+  email      String?
+  address    String?
+  ownerId    String?    @db.Uuid
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  tenantId   String?
+  activities Activity[]
+  owner      User?      @relation(fields: [ownerId], references: [id])
+  tenant     Tenant?    @relation(fields: [tenantId], references: [id])
+  contacts   Contact[]
+  deals      Deal[]
+  leads      Lead[]
+  notes      Note[]
+  tasks      Task[]
+
+  @@index([tenantId])
+}
+
+model Contact {
+  id         String     @id @default(uuid()) @db.Uuid
+  firstName  String
+  lastName   String
+  email      String?
+  phone      String?
+  position   String?
+  companyId  String     @db.Uuid
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  tenantId   String?
+  activities Activity[]
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tenant     Tenant?    @relation(fields: [tenantId], references: [id])
+  notes      Note[]
+
+  @@index([tenantId])
+}
+
+model Lead {
+  id             String         @id @default(uuid()) @db.Uuid
+  source         String?
+  status         LeadStatusEnum @default(NEW)
+  estimatedValue Decimal?   @db.Decimal(12, 2)
+  companyId      String         @db.Uuid
+  assignedToId   String?        @db.Uuid
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  tenantId       String?
+  activities     Activity[]
+  assignedTo     User?      @relation(fields: [assignedToId], references: [id])
+  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tenant         Tenant?    @relation(fields: [tenantId], references: [id])
+  notes          Note[]
+  followUps      Task[]
+
+  @@index([tenantId])
+}
+
+model Deal {
+  id         String     @id @default(uuid()) @db.Uuid
+  title      String
+  value      Decimal    @db.Decimal(12, 2)
+  stage      DealStage  @default(NEW)
+  stageId    Int        @default(1)
+  closeDate  DateTime?
+  companyId  String     @db.Uuid
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  tenantId   String?
+  activities Activity[]
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  pipelineStage PipelineStage @relation(fields: [stageId], references: [id])
+  tenant     Tenant?    @relation(fields: [tenantId], references: [id])
+  notes      Note[]
+
+  @@index([tenantId])
+  @@index([stageId])
+}
+
+model Task {
+  id           String       @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  dueDate      DateTime?
+  priority     TaskPriority @default(MEDIUM)
+  status       TaskStatus   @default(OPEN)
+  companyId    String?      @db.Uuid
+  assignedToId String?      @db.Uuid
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  leadId       String?      @db.Uuid
+  tenantId     String?
+  reminderAt   DateTime?
+  assignedTo   User?        @relation(fields: [assignedToId], references: [id])
+  company      Company?     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead         Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tenant       Tenant?      @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Activity {
+  id        String       @id @default(uuid()) @db.Uuid
+  type      ActivityType
+  title     String
+  content   String?
+  companyId String       @db.Uuid
+  createdAt DateTime     @default(now())
+  contactId String?      @db.Uuid
+  dealId    String?      @db.Uuid
+  leadId    String?      @db.Uuid
+  tenantId  String?
+  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact   Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal      Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  lead      Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tenant    Tenant?      @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Note {
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String
+  companyId String?  @db.Uuid
+  contactId String?  @db.Uuid
+  dealId    String?  @db.Uuid
+  createdAt DateTime @default(now())
+  leadId    String?  @db.Uuid
+  tenantId  String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String
+  value     String
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  action    String
+  module    String
+  userId    String?  @db.Uuid
+  tenantId  String?
+  details   String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model PipelineStage {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  order     Int      @unique
+  createdAt DateTime @default(now())
+  deals     Deal[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [email], references: [email], onDelete: Cascade)
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LeadStatusEnum {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  CONVERTED
+  LOST
+
+  @@map("LeadStatusEnum")
+}
+
+enum DealStage {
+  NEW
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  NOTE
+  TASK
+}
