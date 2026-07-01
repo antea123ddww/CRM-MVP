@@ -54,13 +54,10 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
-      if (data.refreshToken) {
-        localStorage.setItem("refreshToken", data.refreshToken);
-      }
+      localStorage.setItem("user", JSON.stringify(data.user));
       if (data.csrfToken) {
         localStorage.setItem("csrfToken", data.csrfToken);
       }
-      localStorage.setItem("user", JSON.stringify(data.user));
 
       router.replace(defaultPathForRole(data.user.role as UserRole));
     } catch {

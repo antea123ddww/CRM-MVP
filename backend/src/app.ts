@@ -25,6 +25,16 @@ import { performanceMiddleware } from "./middleware/performance";
 const app = express();
 
 const isProduction = process.env.NODE_ENV === "production";
+const frontendUrl = process.env.FRONTEND_URL;
+
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
+
+if (!frontendUrl) {
+  throw new Error("FRONTEND_URL environment variable is required.");
+}
+
 const rateLimitMax = Number(
   process.env.RATE_LIMIT_MAX || (isProduction ? 100 : 1000)
 );
@@ -39,7 +49,7 @@ const limiter = rateLimit({
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: frontendUrl,
     credentials: true,
   })
 );

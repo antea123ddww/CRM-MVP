@@ -1,4 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL environment variable is required.");
+}
 const LOGIN_PATH = "/login";
 const GET_CACHE_TTL_MS = 30_000;
 
@@ -14,17 +18,6 @@ export function getToken() {
   return localStorage.getItem("token");
 }
 
-function getCookie(name: string) {
-  if (typeof document === "undefined") return null;
-
-  return (
-    document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`))
-      ?.split("=")[1] || null
-  );
-}
-
 function clearSession() {
   getCache.clear();
   localStorage.removeItem("token");
@@ -34,15 +27,13 @@ function clearSession() {
 }
 
 async function refreshAccessToken() {
-  const refreshToken = localStorage.getItem("refreshToken");
-
   const res = await fetch(`${API_URL}/auth/refresh`, {
     method: "POST",
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
+    body: JSON.stringify({}),
   });
 
   if (!res.ok) return null;
@@ -52,6 +43,9 @@ async function refreshAccessToken() {
   if (!data.token) return null;
 
   localStorage.setItem("token", data.token);
+  if (data.csrfToken) {
+    localStorage.setItem("csrfToken", data.csrfToken);
+  }
   return data.token as string;
 }
 
@@ -61,7 +55,7 @@ async function requestApi(
   token: string | null
 ) {
   const method = options.method || "GET";
-  const csrfToken = getCookie("csrfToken");
+  const csrfToken = localStorage.getItem("csrfToken");
 
   try {
     return await fetch(`${API_URL}${path}`, {
@@ -71,7 +65,7 @@ async function requestApi(
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(method !== "GET" && csrfToken
-          ? { "X-CSRF-Token": decodeURIComponent(csrfToken) }
+          ? { "X-CSRF-Token": csrfToken }
           : {}),
         ...options.headers,
       },

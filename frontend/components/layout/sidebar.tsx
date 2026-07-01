@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getStoredUser, visibleMenuItems } from "@/lib/permissions";
+import { apiFetch } from "@/services/api";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -15,12 +16,16 @@ export function Sidebar() {
     menuItems.forEach((item) => router.prefetch(item.href));
   }, [menuItems, router]);
 
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("csrfToken");
-    localStorage.removeItem("user");
-    router.push("/login");
+  async function logout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" });
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("csrfToken");
+      localStorage.removeItem("user");
+      router.replace("/login");
+    }
   }
 
   return (

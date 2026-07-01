@@ -5,6 +5,13 @@ import { Role } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import crypto from "crypto";
 
+const RESET_RESPONSE =
+  "If an account exists for that email, a password reset link has been sent.";
+
+function hashToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 function createAccessToken(user: {
   id: string;
   email: string;
@@ -24,11 +31,11 @@ function createAccessToken(user: {
 }
 
 async function createRefreshToken(userId: string) {
-  const refreshToken = crypto.randomUUID();
+  const refreshToken = crypto.randomBytes(48).toString("base64url");
 
   await prisma.refreshToken.create({
     data: {
-      token: refreshToken,
+      token: hashToken(refreshToken),
       userId,
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
     },
@@ -37,22 +44,78 @@ async function createRefreshToken(userId: string) {
   return refreshToken;
 }
 
+async function deliverResetLink(email: string, resetToken: string) {
+  const frontendUrl = process.env.FRONTEND_URL;
+
+  if (!frontendUrl) {
+    throw new Error("FRONTEND_URL environment variable is required.");
+  }
+
+  const resetUrl = `${frontendUrl}/reset-password?token=${encodeURIComponent(
+    resetToken
+  )}`;
+
+  // Development fallback: always show the reset link in the backend terminal.
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[password-reset] ${email}: ${resetUrl}`);
+  }
+
+  if (process.env.RESEND_API_KEY && process.env.RESET_EMAIL_FROM) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.RESET_EMAIL_FROM,
+        to: [email],
+        subject: "Reset your CRM password",
+        html: `
+          <p>Use the link below to reset your password.</p>
+          <p>This link expires in 15 minutes.</p>
+          <p><a href="${resetUrl}">Reset password</a></p>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("Resend failed in development:", error);
+        return;
+      }
+
+      throw new Error(error);
+    }
+
+    console.info(`Password reset email sent to ${email}`);
+    return;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Email provider is not configured.");
+  }
+}
+
 function setSecurityCookies(
   res: Response,
   refreshToken: string,
   csrfToken: string
 ) {
   const secure = process.env.NODE_ENV === "production";
+  const sameSite = secure ? "none" : "strict";
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite,
     secure,
     maxAge: 1000 * 60 * 60 * 24 * 7,
   });
 
   res.cookie("csrfToken", csrfToken, {
-    sameSite: "strict",
+    sameSite,
     secure,
     maxAge: 1000 * 60 * 60 * 24 * 7,
   });
@@ -112,8 +175,8 @@ export async function login(req: Request, res: Response) {
     const user = await prisma.user.findUnique({
       where: { email },
     });
-
-    if (!user) {
+console.log("USER FOUND:", user ? user.email : "NO USER FOUND");
+    if (!user || user.status !== "ACTIVE") {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
@@ -132,12 +195,12 @@ export async function login(req: Request, res: Response) {
 
     const refreshToken = await createRefreshToken(user.id);
     const csrfToken = crypto.randomUUID();
+
     setSecurityCookies(res, refreshToken, csrfToken);
 
     return res.json({
       message: "Login successful",
       token,
-      refreshToken,
       csrfToken,
       user: {
         id: user.id,
@@ -156,7 +219,7 @@ export async function login(req: Request, res: Response) {
 
 export async function refresh(req: Request, res: Response) {
   try {
-    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({
@@ -165,7 +228,7 @@ export async function refresh(req: Request, res: Response) {
     }
 
     const storedToken = await prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+      where: { token: hashToken(refreshToken) },
     });
 
     if (!storedToken || storedToken.expiresAt < new Date()) {
@@ -178,7 +241,7 @@ export async function refresh(req: Request, res: Response) {
       where: { id: storedToken.userId },
     });
 
-    if (!user) {
+    if (!user || user.status !== "ACTIVE") {
       return res.status(401).json({
         message: "User not found",
       });
@@ -191,9 +254,16 @@ export async function refresh(req: Request, res: Response) {
       tenantId: user.tenantId,
     });
 
+    await prisma.refreshToken.delete({ where: { id: storedToken.id } });
+
+    const nextRefreshToken = await createRefreshToken(user.id);
+    const nextCsrfToken = crypto.randomUUID();
+    setSecurityCookies(res, nextRefreshToken, nextCsrfToken);
+
     return res.json({
       message: "Token refreshed successfully",
       token,
+      csrfToken: nextCsrfToken,
     });
   } catch {
     return res.status(500).json({
@@ -204,16 +274,19 @@ export async function refresh(req: Request, res: Response) {
 
 export async function logout(req: Request, res: Response) {
   try {
-    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
 
     if (refreshToken) {
       await prisma.refreshToken.deleteMany({
-        where: { token: refreshToken },
+        where: { token: hashToken(refreshToken) },
       });
     }
 
-    res.clearCookie("refreshToken");
-    res.clearCookie("csrfToken");
+    const secure = process.env.NODE_ENV === "production";
+    const sameSite = secure ? "none" : "strict";
+
+    res.clearCookie("refreshToken", { sameSite, secure });
+    res.clearCookie("csrfToken", { sameSite, secure });
 
     return res.json({
       message: "Logout successful",
@@ -250,9 +323,10 @@ export async function me(req: Request, res: Response) {
 }
 
 export async function forgotPassword(req: Request, res: Response) {
+  console.log("FORGOT PASSWORD FUNCTION HIT");
   try {
     const { email } = req.body;
-
+console.log("FORGOT EMAIL:", email);
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
@@ -262,7 +336,9 @@ export async function forgotPassword(req: Request, res: Response) {
     });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.json({
+        message: RESET_RESPONSE,
+      });
     }
 
     const resetToken = crypto.randomUUID();
@@ -270,16 +346,18 @@ export async function forgotPassword(req: Request, res: Response) {
     await prisma.passwordResetToken.create({
       data: {
         email,
-        token: resetToken,
+        token: hashToken(resetToken),
         expiresAt: new Date(Date.now() + 1000 * 60 * 15),
       },
     });
 
+    await deliverResetLink(email, resetToken);
+
     return res.json({
-      message: "Password reset token created",
-      resetToken,
+      message: RESET_RESPONSE,
     });
-  } catch {
+  } catch (error) {
+    console.error("Forgot password error:", error);
     return res.status(500).json({ message: "Forgot password failed" });
   }
 }
@@ -295,7 +373,7 @@ export async function resetPassword(req: Request, res: Response) {
     }
 
     const reset = await prisma.passwordResetToken.findUnique({
-      where: { token },
+      where: { token: hashToken(token) },
     });
 
     if (!reset || reset.expiresAt < new Date()) {
@@ -304,16 +382,35 @@ export async function resetPassword(req: Request, res: Response) {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await prisma.user.update({
+    const user = await prisma.user.findUnique({
       where: { email: reset.email },
-      data: { password: hashedPassword },
     });
 
-    await prisma.passwordResetToken.delete({
-      where: { token },
-    });
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired token",
+      });
+    }
+
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            password: await bcrypt.hash(password, 10),
+          },
+        });
+
+        await tx.passwordResetToken.deleteMany({
+          where: { email: reset.email },
+        });
+
+        await tx.refreshToken.deleteMany({
+          where: { userId: user.id },
+        });
+      },
+      { isolationLevel: "Serializable" }
+    );
 
     return res.json({
       message: "Password reset successfully",
@@ -328,7 +425,7 @@ export async function csrf(req: Request, res: Response) {
   const secure = process.env.NODE_ENV === "production";
 
   res.cookie("csrfToken", csrfToken, {
-    sameSite: "strict",
+    sameSite: secure ? "none" : "strict",
     secure,
     maxAge: 1000 * 60 * 60 * 24 * 7,
   });

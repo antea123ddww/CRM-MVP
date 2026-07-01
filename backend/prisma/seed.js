@@ -41,7 +41,7 @@ async function seedDefaultTenant() {
 }
 
 async function seedAdminUser(tenantId) {
-  const email = process.env.DEFAULT_ADMIN_EMAIL || "admin@crm.com";
+  const email = process.env.DEFAULT_ADMIN_EMAIL || "admin.crm.system@gmail.com";
   const password = process.env.DEFAULT_ADMIN_PASSWORD || "Admin123!";
   const hashedPassword = await bcrypt.hash(password, 10);
 
