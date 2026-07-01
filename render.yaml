@@ -2,10 +2,11 @@ services:
   - type: web
     name: crm-backend
     runtime: node
+    plan: free
     rootDir: backend
     buildCommand: npm ci && npx prisma generate && npm run build
-    preDeployCommand: npx prisma migrate deploy
-    startCommand: npm start
+    startCommand: npx prisma migrate deploy && npm start
+    initialDeployHook: npm run seed
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -31,5 +32,6 @@ services:
 
 databases:
   - name: crm-database
+    plan: free
     databaseName: crm
     user: crm

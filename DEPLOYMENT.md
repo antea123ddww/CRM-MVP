@@ -9,7 +9,9 @@ Create a Blueprint from this repository using `render.yaml`. Before the first de
 - `RESET_EMAIL_FROM`: an address on a verified Resend domain.
 - `DEFAULT_ADMIN_EMAIL` and `DEFAULT_ADMIN_PASSWORD`: initial administrator credentials.
 
-Render supplies `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV`, and `PORT`. The pre-deploy command applies committed Prisma migrations without resetting the database.
+Render supplies `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV`, and `PORT`. The free web service applies committed Prisma migrations before starting, without resetting the database. The initial deploy hook seeds the administrator once.
+
+Both the web service and PostgreSQL database are explicitly configured with `plan: free`, so no card is required. Render's free PostgreSQL database expires after 30 days, has no managed backups, and is intended only for testing or demonstration.
 
 After deployment, verify `https://YOUR-BACKEND.onrender.com/api/health`.
 
@@ -29,7 +31,7 @@ Copy the final Vercel production URL into Render's `FRONTEND_URL`, without a tra
 
 ## 4. Initial data
 
-Do not run a reset. If the new production database needs the initial administrator, run `npm run seed` once from the Render Shell after migrations complete.
+Do not run a reset. The Blueprint runs `npm run seed` once through `initialDeployHook`; free services do not provide Render Shell access.
 
 ## 5. Final checks
 
