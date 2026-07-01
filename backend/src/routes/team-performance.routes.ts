@@ -9,7 +9,7 @@ const router = Router();
 router.get(
   "/",
   authMiddleware,
-  roleMiddleware([Role.MANAGER]),
+  roleMiddleware([Role.ADMIN, Role.MANAGER]),
   getTeamPerformance
 );
 

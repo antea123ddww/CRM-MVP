@@ -79,8 +79,12 @@ export default function ContactsPage() {
   const [editingNoteText, setEditingNoteText] = useState("");
 
   async function loadData() {
-    setContacts(await apiFetch("/contacts"));
-    setCompanies(await apiFetch("/companies"));
+    const [nextContacts, nextCompanies] = await Promise.all([
+      apiFetch("/contacts"),
+      apiFetch("/companies"),
+    ]);
+    setContacts(nextContacts);
+    setCompanies(nextCompanies);
   }
 
   useEffect(() => {
@@ -437,31 +441,30 @@ export default function ContactsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="relative overflow-visible text-right align-top">
-                    <details className="relative inline-flex justify-end">
-                      <summary
-                        className="list-none cursor-pointer rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 [&::-webkit-details-marker]:hidden"
-                        aria-label="Contact actions"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </summary>
-
-                      <div className="absolute right-0 top-8 z-50 w-28 rounded-md border bg-white p-1 shadow-lg">
-                        <button
-                          className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-slate-100"
-                          type="button"
-                          onClick={() => startEdit(contact)}
-                        >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            size="icon-xs"
+                            variant="ghost"
+                            aria-label="Contact actions"
+                          >
+                            <MoreHorizontal />
+                          </Button>
+                        }
+                      />
+                      <DropdownMenuContent align="end" className="w-28 min-w-28">
+                        <DropdownMenuItem onClick={() => startEdit(contact)}>
                           Edit
-                        </button>
-                        <button
-                          className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
-                          type="button"
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
                           onClick={() => deleteContact(contact.id)}
                         >
                           Delete
-                        </button>
-                      </div>
-                    </details>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

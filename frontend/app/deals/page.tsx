@@ -87,13 +87,6 @@ export default function DealsPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [editingDealId, setEditingDealId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [editForm, setEditForm] = useState({
-    title: "",
-    value: "",
-    stage: "NEW",
-    closeDate: "",
-    companyId: "",
-  });
   const [form, setForm] = useState({
     title: "",
     value: "",
@@ -105,13 +98,14 @@ export default function DealsPage() {
   async function loadData(role = userRole) {
     try {
       setError(null);
-      setDeals(await apiFetch("/deals"));
-
-      if (role === "ADMIN" || role === "SALES") {
-        setCompanies(await apiFetch("/companies"));
-      } else {
-        setCompanies([]);
-      }
+      const [nextDeals, nextCompanies] = await Promise.all([
+        apiFetch("/deals"),
+        role === "ADMIN" || role === "SALES"
+          ? apiFetch("/companies")
+          : Promise.resolve([]),
+      ]);
+      setDeals(nextDeals);
+      setCompanies(nextCompanies);
     } catch (err) {
       setDeals([]);
       setCompanies([]);
@@ -224,7 +218,7 @@ export default function DealsPage() {
 
   function startEditDeal(deal: Deal) {
     setEditingDealId(deal.id);
-    setEditForm({
+    setForm({
       title: deal.title,
       value: String(deal.value),
       stage: deal.stage,
@@ -232,32 +226,6 @@ export default function DealsPage() {
       companyId: deal.company?.id || deal.companyId || "",
     });
     setOpen(true);
-  }
-
-  async function saveDeal(id: string) {
-    if (!editForm.title || !editForm.value || !editForm.companyId) return;
-    try {
-      setError(null);
-      await apiFetch(`/deals/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          ...editForm,
-          value: Number(editForm.value),
-        }),
-      });
-
-      setEditingDealId(null);
-      setEditForm({
-        title: "",
-        value: "",
-        stage: "NEW",
-        closeDate: "",
-        companyId: "",
-      });
-      loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save deal.");
-    }
   }
 
   async function deleteDeal(id: string) {
@@ -447,77 +415,7 @@ export default function DealsPage() {
                     key={deal.id}
                     className="relative border rounded-md p-3 space-y-2 pr-10"
                   >
-                    {editingDealId === deal.id ? (
-                      <div className="space-y-2">
-                        <Input
-                          placeholder="Deal title"
-                          value={editForm.title}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, title: e.target.value })
-                          }
-                        />
-                        <Input
-                          placeholder="Value"
-                          value={editForm.value}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, value: e.target.value })
-                          }
-                        />
-                        <select
-                          className="w-full border rounded-md px-2 py-1 text-sm"
-                          value={editForm.stage}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, stage: e.target.value })
-                          }
-                        >
-                          {stages.map((nextStage) => (
-                            <option key={nextStage} value={nextStage}>
-                              {nextStage}
-                            </option>
-                          ))}
-                        </select>
-                        <Input
-                          type="date"
-                          value={editForm.closeDate}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              closeDate: e.target.value,
-                            })
-                          }
-                        />
-                        <select
-                          className="w-full border rounded-md px-2 py-1 text-sm"
-                          value={editForm.companyId}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              companyId: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="">Select company</option>
-                          {companies.map((company) => (
-                            <option key={company.id} value={company.id}>
-                              {company.name}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => saveDeal(deal.id)}>
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingDealId(null)}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
+                    <>
                         <p className="font-semibold">{deal.title}</p>
                         <p className="text-sm text-muted-foreground">
                           {deal.company?.name || "-"}
@@ -583,8 +481,7 @@ export default function DealsPage() {
                             </DropdownMenu>
                           </div>
                         )}
-                      </>
-                    )}
+                    </>
                   </div>
                 ))}
             </CardContent>

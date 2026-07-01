@@ -26,9 +26,12 @@ export const menuItems: MenuItem[] = [
   { label: "Audit Logs", href: "/audit-logs", roles: ["ADMIN"] },
   { label: "Notes", href: "/notes", roles: ["ADMIN"] },
   { label: "Reports", href: "/reports", roles: ["ADMIN"] },
-  { label: "Team Performance", href: "/team-performance", roles: ["MANAGER"] },
+  {
+    label: "Team Performance",
+    href: "/team-performance",
+    roles: ["ADMIN", "MANAGER"],
+  },
   { label: "Users", href: "/users", roles: ["ADMIN"] },
-  { label: "Settings", href: "/settings", roles: ["ADMIN"] },
 ];
 
 export function getStoredUser(): StoredUser | null {

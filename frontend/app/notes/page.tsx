@@ -62,11 +62,19 @@ export default function NotesPage() {
   const [open, setOpen] = useState(false);
 
   async function loadData() {
-    setNotes(await apiFetch("/notes"));
-    setCompanies(await apiFetch("/companies"));
-    setContacts(await apiFetch("/contacts"));
-    setLeads(await apiFetch("/leads"));
-    setDeals(await apiFetch("/deals"));
+    const [nextNotes, nextCompanies, nextContacts, nextLeads, nextDeals] =
+      await Promise.all([
+        apiFetch("/notes"),
+        apiFetch("/companies"),
+        apiFetch("/contacts"),
+        apiFetch("/leads"),
+        apiFetch("/deals"),
+      ]);
+    setNotes(nextNotes);
+    setCompanies(nextCompanies);
+    setContacts(nextContacts);
+    setLeads(nextLeads);
+    setDeals(nextDeals);
   }
 
   useEffect(() => {

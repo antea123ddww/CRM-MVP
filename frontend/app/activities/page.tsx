@@ -76,11 +76,19 @@ export default function ActivitiesPage() {
   const [open, setOpen] = useState(false);
 
   async function loadData() {
-    setActivities(await apiFetch("/activities"));
-    setCompanies(await apiFetch("/companies"));
-    setContacts(await apiFetch("/contacts"));
-    setLeads(await apiFetch("/leads"));
-    setDeals(await apiFetch("/deals"));
+    const [nextActivities, nextCompanies, nextContacts, nextLeads, nextDeals] =
+      await Promise.all([
+        apiFetch("/activities"),
+        apiFetch("/companies"),
+        apiFetch("/contacts"),
+        apiFetch("/leads"),
+        apiFetch("/deals"),
+      ]);
+    setActivities(nextActivities);
+    setCompanies(nextCompanies);
+    setContacts(nextContacts);
+    setLeads(nextLeads);
+    setDeals(nextDeals);
   }
 
   useEffect(() => {

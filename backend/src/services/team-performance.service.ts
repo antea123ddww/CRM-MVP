@@ -41,7 +41,8 @@ export async function getTeamPerformance(user?: RequestUser) {
       (lead) => lead.status === LeadStatusEnum.CONVERTED
     ).length;
     const openTasks = member.tasks.filter(
-      (task) => task.status !== TaskStatus.COMPLETED
+      (task) =>
+        task.status === TaskStatus.OPEN || task.status === TaskStatus.IN_PROGRESS
     ).length;
     const completedTasks = member.tasks.filter(
       (task) => task.status === TaskStatus.COMPLETED

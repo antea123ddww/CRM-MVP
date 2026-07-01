@@ -182,7 +182,12 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[320px] w-full min-w-0">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                initialDimension={{ width: 1, height: 320 }}
+              >
                 <BarChart data={salesData}>
                   <XAxis dataKey="name" />
                   <YAxis />
@@ -200,7 +205,12 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[320px] w-full min-w-0">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+                minWidth={0}
+                initialDimension={{ width: 1, height: 320 }}
+              >
                 <PieChart>
                   <Pie
                     data={leadData}

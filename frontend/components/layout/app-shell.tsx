@@ -21,16 +21,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPublicRoute = publicRoutes.includes(pathname);
 
   useEffect(() => {
-    setChecking(true);
-
     const token = localStorage.getItem("token");
     const storedUser = getStoredUser();
     setUser(storedUser);
 
     if (token && storedUser && !canAccessPath(storedUser.role, pathname)) {
-  router.replace(defaultPathForRole(storedUser.role));
-  return;
-}
+      router.replace(defaultPathForRole(storedUser.role));
+      return;
+    }
 
     if (pathname === "/") {
       router.replace(
@@ -48,11 +46,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.replace(
         storedUser ? defaultPathForRole(storedUser.role) : "/dashboard"
       );
-      return;
-    }
-
-    if (token && storedUser && !canAccessPath(storedUser.role, pathname)) {
-      router.replace(defaultPathForRole(storedUser.role));
       return;
     }
 

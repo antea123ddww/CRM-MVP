@@ -84,8 +84,12 @@ export default function TasksPage() {
   async function loadData() {
     try {
       setError(null);
-      setTasks(await apiFetch("/tasks"));
-      setCompanies(await apiFetch("/companies"));
+      const [nextTasks, nextCompanies] = await Promise.all([
+        apiFetch("/tasks"),
+        apiFetch("/companies"),
+      ]);
+      setTasks(nextTasks);
+      setCompanies(nextCompanies);
     } catch (err) {
       setTasks([]);
       setCompanies([]);

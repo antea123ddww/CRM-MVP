@@ -14,6 +14,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -83,17 +89,19 @@ export default function LeadsPage() {
     const role = getStoredUser()?.role || null;
     setUserRole(role);
 
-    setLeads(await apiFetch("/leads"));
+    const [nextLeads, nextCompanies, nextUsers] = await Promise.all([
+      apiFetch("/leads"),
+      role === "ADMIN" || role === "SALES"
+        ? apiFetch("/companies")
+        : Promise.resolve([]),
+      role === "ADMIN" || role === "MANAGER"
+        ? apiFetch("/users/assignable")
+        : Promise.resolve([]),
+    ]);
 
-    if (role === "ADMIN" || role === "SALES") {
-      setCompanies(await apiFetch("/companies"));
-    } else {
-      setCompanies([]);
-    }
-
-    if (role === "ADMIN" || role === "MANAGER") {
-      setUsers(await apiFetch("/users/assignable"));
-    }
+    setLeads(nextLeads);
+    setCompanies(nextCompanies);
+    setUsers(nextUsers);
   }
 
   useEffect(() => {
@@ -146,19 +154,28 @@ export default function LeadsPage() {
   }
 
   function startEdit(lead: Lead) {
+    const currentAssignee = lead.assignedTo?.id || lead.assignedToId || "";
     setEditId(lead.id);
     setForm({
       companyId: lead.company?.id || lead.companyId || "",
       source: lead.source || "",
       status: lead.status || "NEW",
       estimatedValue: lead.estimatedValue ? String(lead.estimatedValue) : "",
-      assignedToId: lead.assignedTo?.id || lead.assignedToId || "",
+      assignedToId: users.length === 1 ? users[0].id : currentAssignee,
     });
     setOpen(true);
   }
 
   async function deleteLead(id: string) {
     await apiFetch(`/leads/${id}`, { method: "DELETE" });
+    loadData();
+  }
+
+  async function assignLeadDirectly(leadId: string, userId: string) {
+    await apiFetch(`/leads/${leadId}`, {
+      method: "PUT",
+      body: JSON.stringify({ assignedToId: userId }),
+    });
     loadData();
   }
 
@@ -204,7 +221,10 @@ export default function LeadsPage() {
 
   function openCreate() {
     setEditId(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      assignedToId: users.length === 1 ? users[0].id : "",
+    });
     setOpen(true);
   }
 
@@ -212,7 +232,18 @@ export default function LeadsPage() {
   const canEditLeadDetails = userRole === "ADMIN" || userRole === "SALES";
   const canAssignLead = userRole === "ADMIN" || userRole === "MANAGER";
   const canDeleteLead = userRole === "ADMIN";
+  const canManageFollowUps = userRole === "ADMIN" || userRole === "SALES";
   const canOpenLeadMenu = canEditLeadDetails || canAssignLead || canDeleteLead;
+  const managerCanAssignAny =
+    userRole === "MANAGER" &&
+    users.length > 0 &&
+    (users.length > 1 ||
+      leads.some(
+        (lead) =>
+          (lead.assignedTo?.id || lead.assignedToId) !== users[0].id
+      ));
+  const showActions = userRole !== "MANAGER" || managerCanAssignAny;
+  const visibleColumnCount = 5 + Number(canManageFollowUps) + Number(showActions);
 
   return (
     <div className="space-y-6">
@@ -274,7 +305,7 @@ export default function LeadsPage() {
                 </>
               )}
 
-              {canAssignLead && (
+              {canAssignLead && users.length > 1 && (
                 <select
                   className="border rounded-md px-3 py-2 md:col-span-2"
                   value={form.assignedToId}
@@ -282,13 +313,27 @@ export default function LeadsPage() {
                     setForm({ ...form, assignedToId: e.target.value })
                   }
                 >
-                  <option value="">Assign Sales Representative</option>
+                  <option value="" disabled>
+                    Select Sales Representative
+                  </option>
                   {users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.firstName} {user.lastName}
                     </option>
                   ))}
                 </select>
+              )}
+
+              {canAssignLead && users.length === 1 && (
+                <div className="flex h-10 items-center rounded-md border bg-slate-50 px-3 text-sm md:col-span-2">
+                  {users[0].firstName} {users[0].lastName}
+                </div>
+              )}
+
+              {canAssignLead && users.length === 0 && (
+                <div className="flex h-10 items-center rounded-md border border-amber-200 bg-amber-50 px-3 text-sm text-amber-700 md:col-span-2">
+                  No active Sales Representatives available
+                </div>
               )}
 
               <Button className="md:col-span-2" onClick={saveLead}>
@@ -321,8 +366,8 @@ export default function LeadsPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Assigned To</TableHead>
                 <TableHead>Estimated Value</TableHead>
-                <TableHead>Follow-ups</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                {canManageFollowUps && <TableHead>Follow-ups</TableHead>}
+                {showActions && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
 
@@ -338,13 +383,13 @@ export default function LeadsPage() {
                       : "-"}
                   </TableCell>
                   <TableCell>EUR {lead.estimatedValue || 0}</TableCell>
-                  <TableCell>
+                  {canManageFollowUps && <TableCell>
                     <div className="space-y-2 min-w-[260px]">
                       <p className="text-sm text-slate-500">
                         {lead.followUps?.[0]?.title || "No follow-ups"}
                       </p>
 
-                      {followUpLeadId === lead.id ? (
+                      {canManageFollowUps && followUpLeadId === lead.id ? (
                         <div className="space-y-2 rounded-md border bg-slate-50 p-3">
                           <Input
                             className="h-9"
@@ -376,7 +421,7 @@ export default function LeadsPage() {
                             </Button>
                           </div>
                         </div>
-                      ) : (
+                      ) : canManageFollowUps ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -384,57 +429,80 @@ export default function LeadsPage() {
                         >
                           Add Follow-up
                         </Button>
-                      )}
+                      ) : null}
                     </div>
-                  </TableCell>
-                  <TableCell className="relative overflow-visible text-right align-top">
-                    {canOpenLeadMenu && (
-                      <details className="relative inline-flex justify-end">
-                        <summary
-                          className="list-none cursor-pointer rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 [&::-webkit-details-marker]:hidden"
-                          aria-label="Lead actions"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </summary>
+                  </TableCell>}
+                  {showActions && <TableCell className="relative overflow-visible text-right align-top">
+                    {userRole === "MANAGER" &&
+                      canAssignLead &&
+                      users.length > 0 &&
+                      (users.length > 1 ||
+                        (lead.assignedTo?.id || lead.assignedToId) !==
+                          users[0].id) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          users.length === 1
+                            ? assignLeadDirectly(lead.id, users[0].id)
+                            : startEdit(lead)
+                        }
+                      >
+                        {users.length === 1
+                          ? `Assign to ${users[0].firstName}`
+                          : "Assign Lead"}
+                      </Button>
+                      )}
 
-                        <div className="absolute right-0 top-8 z-50 w-36 rounded-md border bg-white p-1 shadow-lg">
+                    {userRole === "SALES" && canEditLeadDetails && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startEdit(lead)}
+                      >
+                        Edit
+                      </Button>
+                    )}
+
+                    {userRole === "ADMIN" && canOpenLeadMenu && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              size="icon-xs"
+                              variant="ghost"
+                              aria-label="Lead actions"
+                            >
+                              <MoreHorizontal />
+                            </Button>
+                          }
+                        />
+                        <DropdownMenuContent align="end" className="w-36 min-w-36">
                           {canEditLeadDetails && (
-                            <button
-                              className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
-                              type="button"
+                            <DropdownMenuItem
                               onClick={() => startEdit(lead)}
                             >
                               Edit
-                            </button>
-                          )}
-                          {userRole === "MANAGER" && canAssignLead && (
-                            <button
-                              className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
-                              type="button"
-                              onClick={() => startEdit(lead)}
-                            >
-                              Assign Lead
-                            </button>
+                            </DropdownMenuItem>
                           )}
                           {canDeleteLead && (
-                            <button
-                              className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                              type="button"
+                            <DropdownMenuItem
+                              variant="destructive"
                               onClick={() => deleteLead(lead.id)}
                             >
                               Delete
-                            </button>
+                            </DropdownMenuItem>
                           )}
-                        </div>
-                      </details>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
-                  </TableCell>
+                  </TableCell>}
                 </TableRow>
               ))}
 
               {leads.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10 text-slate-500">
+                  <TableCell colSpan={visibleColumnCount} className="text-center py-10 text-slate-500">
                     No leads found.
                   </TableCell>
                 </TableRow>

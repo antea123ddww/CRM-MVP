@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getStoredUser, visibleMenuItems } from "@/lib/permissions";
@@ -9,6 +10,10 @@ export function Sidebar() {
   const router = useRouter();
   const user = getStoredUser();
   const menuItems = user ? visibleMenuItems(user.role) : [];
+
+  useEffect(() => {
+    menuItems.forEach((item) => router.prefetch(item.href));
+  }, [menuItems, router]);
 
   function logout() {
     localStorage.removeItem("token");
@@ -40,6 +45,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onMouseEnter={() => router.prefetch(item.href)}
               className={`block rounded-xl px-4 py-3 text-sm transition ${
                 active
                   ? "bg-white text-slate-950 font-semibold"

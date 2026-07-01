@@ -1,5 +1,13 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const LOGIN_PATH = "/login";
+const GET_CACHE_TTL_MS = 30_000;
+
+type CacheEntry = {
+  expiresAt: number;
+  request: Promise<unknown>;
+};
+
+const getCache = new Map<string, CacheEntry>();
 
 export function getToken() {
   if (typeof window === "undefined") return null;
@@ -18,6 +26,7 @@ function getCookie(name: string) {
 }
 
 function clearSession() {
+  getCache.clear();
   localStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("csrfToken");
@@ -74,6 +83,37 @@ async function requestApi(
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = getToken();
+  const method = (options.method || "GET").toUpperCase();
+  const cacheKey = `${token || "anonymous"}:${path}`;
+
+  if (method === "GET") {
+    const cached = getCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.request;
+    }
+    getCache.delete(cacheKey);
+  } else {
+    getCache.clear();
+  }
+
+  const request = performApiFetch(path, options, token);
+
+  if (method === "GET") {
+    getCache.set(cacheKey, {
+      expiresAt: Date.now() + GET_CACHE_TTL_MS,
+      request,
+    });
+    request.catch(() => getCache.delete(cacheKey));
+  }
+
+  return request;
+}
+
+async function performApiFetch(
+  path: string,
+  options: RequestInit,
+  token: string | null
+) {
   let res = await requestApi(path, options, token);
 
   if (res.status === 401) {
