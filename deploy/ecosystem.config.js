@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "crm-backend",
-      cwd: "./backend",
+      cwd: "../backend",
       script: "dist/src/server.js",
       env: {
         NODE_ENV: "production",
@@ -11,7 +11,7 @@ module.exports = {
     },
     {
       name: "crm-frontend",
-      cwd: "./frontend",
+      cwd: "../frontend",
       script: "node_modules/next/dist/bin/next",
       args: "start",
       env: {

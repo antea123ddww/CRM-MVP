@@ -9,7 +9,7 @@ Create a Blueprint from this repository using `render.yaml`. Before the first de
 - `RESET_EMAIL_FROM`: an address on a verified Resend domain.
 - `DEFAULT_ADMIN_EMAIL` and `DEFAULT_ADMIN_PASSWORD`: initial administrator credentials.
 
-Render supplies `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV`, and `PORT`. The free web service applies committed Prisma migrations before starting, without resetting the database. Run `npm run seed` only during the initial setup; do not attach it to every restart.
+Render supplies `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV`, and `PORT`. The free web service applies committed Prisma migrations and runs the idempotent seed before starting, without resetting the database. The seed ensures the default tenant, default admin, settings, and pipeline stages exist on fresh databases.
 
 The backend build command uses `npm ci --include=dev` because TypeScript and the `@types/*` packages are required during compilation even when `NODE_ENV=production`.
 
@@ -33,7 +33,7 @@ Copy the final Vercel production URL into Render's `FRONTEND_URL`, without a tra
 
 ## 4. Initial data
 
-Do not run a reset. Run `npm run seed` only during initial setup. Free services do not provide Render Shell access.
+Do not run a reset. `render.yaml` runs `npm run seed` automatically after migrations. The seed uses upserts so repeated deploys keep required bootstrap data without duplicating rows.
 
 ## 5. Final checks
 

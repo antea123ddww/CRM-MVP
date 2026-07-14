@@ -1,5 +1,5 @@
 @echo off
-set BACKUP_DIR=%~dp0backups
+set BACKUP_DIR=%~dp0..\backups
 set DB_NAME=%DB_NAME%
 set DB_USER=%DB_USER%
 set RETENTION_DAYS=%RETENTION_DAYS%
