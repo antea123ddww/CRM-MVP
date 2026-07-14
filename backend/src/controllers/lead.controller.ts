@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as LeadService from "../services/lead.service";
 
 export async function getLeads(req: Request, res: Response): Promise<void> {
@@ -8,8 +9,8 @@ export async function getLeads(req: Request, res: Response): Promise<void> {
 
     const leads = await LeadService.getLeads(search, req.user);
     res.json(leads);
-  } catch {
-    res.status(500).json({ message: "Failed to get leads" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get leads");
   }
 }
 
@@ -26,8 +27,8 @@ export async function getLeadById(
     }
 
     res.json(lead);
-  } catch {
-    res.status(500).json({ message: "Failed to get lead" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get lead");
   }
 }
 
@@ -46,8 +47,8 @@ export async function createLead(req: Request, res: Response): Promise<void> {
       message: "Lead created successfully",
       lead,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to create lead" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to create lead");
   }
 }
 
@@ -69,8 +70,8 @@ export async function updateLead(
       message: "Lead updated successfully",
       lead,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to update lead" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to update lead");
   }
 }
 
@@ -89,7 +90,7 @@ export async function deleteLead(
     await LeadService.deleteLead(req.params.id);
 
     res.json({ message: "Lead deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete lead" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to delete lead");
   }
 }

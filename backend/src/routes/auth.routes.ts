@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Role } from "@prisma/client";
 import rateLimit from "express-rate-limit";
 import {
   csrf,
@@ -11,6 +12,7 @@ import {
   resetPassword,
 } from "../controllers/auth.controller";
 import { authMiddleware } from "../middleware/auth";
+import { roleMiddleware } from "../middleware/role";
 import { validate } from "../middleware/validate";
 import {
   forgotPasswordSchema,
@@ -36,7 +38,13 @@ const passwordResetLimiter = rateLimit({
   message: { message: "Too many password reset requests. Please try again later." },
 });
 
-router.post("/register", validate(registerSchema), register);
+router.post(
+  "/register",
+  authMiddleware,
+  roleMiddleware([Role.ADMIN]),
+  validate(registerSchema),
+  register
+);
 router.post("/login", loginLimiter, validate(loginSchema), login);
 router.post("/refresh", refresh);
 router.post("/logout", authMiddleware, logout);

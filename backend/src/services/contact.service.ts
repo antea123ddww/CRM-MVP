@@ -1,5 +1,5 @@
-import { prisma } from "../../lib/prisma";
-import { canViewAll, RequestUser } from "../../lib/access";
+import { prisma } from "../lib/prisma";
+import { canViewAll, RequestUser, tenantFilter } from "../lib/access";
 import type { Prisma } from "@prisma/client";
 
 type ContactInput = {
@@ -26,18 +26,25 @@ export async function getContacts(search?: string, user?: RequestUser) {
     });
   }
 
+  if (user?.tenantId) {
+    filters.push(tenantFilter<Prisma.ContactWhereInput>(user));
+  }
+
   if (!canViewAll(user) && user) {
     filters.push({ company: { ownerId: user.id } });
   }
 
   return prisma.contact.findMany({
     where: filters.length ? { AND: filters } : undefined,
-  include: {
-  company: true,
-  notes: {
-    orderBy: { createdAt: "desc" },
-  },
-},
+    include: {
+      company: true,
+      notes: {
+        orderBy: { createdAt: "desc" },
+      },
+      activities: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -48,20 +55,27 @@ export async function getContactById(id: string, user?: RequestUser) {
   return prisma.contact.findFirst({
     where: {
       id,
+      ...tenantFilter<Prisma.ContactWhereInput>(user),
       ...(!canViewAll(user) && user ? { company: { ownerId: user.id } } : {}),
     },
     include: {
-  company: true,
-  notes: {
-    orderBy: { createdAt: "desc" },
-  },
-},
+      company: true,
+      notes: {
+        orderBy: { createdAt: "desc" },
+      },
+      activities: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 }
 
-export async function createContact(data: ContactInput) {
+export async function createContact(data: ContactInput, user?: RequestUser) {
   return prisma.contact.create({
-    data,
+    data: {
+      ...data,
+      tenantId: user?.tenantId || undefined,
+    },
   });
 }
 

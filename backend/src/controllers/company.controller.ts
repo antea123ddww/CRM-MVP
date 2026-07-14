@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as CompanyService from "../services/company.service";
 
 export async function getCompanies(req: Request, res: Response): Promise<void> {
@@ -9,10 +10,8 @@ export async function getCompanies(req: Request, res: Response): Promise<void> {
     const companies = await CompanyService.getCompanies(search, req.user);
 
     res.json(companies);
-  } catch {
-    res.status(500).json({
-      message: "Failed to get companies",
-    });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get companies");
   }
 }
 
@@ -33,10 +32,8 @@ export async function getCompanyById(
     }
 
     res.json(company);
-  } catch {
-    res.status(500).json({
-      message: "Failed to get company",
-    });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get company");
   }
 }
 
@@ -60,10 +57,8 @@ export async function createCompany(
       message: "Company created successfully",
       company,
     });
-  } catch {
-    res.status(500).json({
-      message: "Failed to create company",
-    });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to create company");
   }
 }
 
@@ -86,10 +81,8 @@ export async function updateCompany(
       message: "Company updated successfully",
       company,
     });
-  } catch {
-    res.status(500).json({
-      message: "Failed to update company",
-    });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to update company");
   }
 }
 
@@ -111,9 +104,7 @@ export async function deleteCompany(
     res.json({
       message: "Company deleted successfully",
     });
-  } catch {
-    res.status(500).json({
-      message: "Failed to delete company",
-    });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to delete company");
   }
 }

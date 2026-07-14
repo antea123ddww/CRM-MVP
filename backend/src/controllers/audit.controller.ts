@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as AuditService from "../services/audit.service";
 
 export async function getAuditLogs(req: Request, res: Response): Promise<void> {
@@ -7,9 +8,6 @@ export async function getAuditLogs(req: Request, res: Response): Promise<void> {
 
     res.json(logs);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Failed to get audit logs",
-    });
+    handleControllerError(error, req, res, "Failed to get audit logs");
   }
 }

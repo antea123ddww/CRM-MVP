@@ -18,7 +18,7 @@ services:
       retries: 3
 
   backend:
-    build: ./backend
+    build: .
     container_name: crm_backend
     restart: always
     ports:
@@ -42,7 +42,7 @@ services:
       retries: 3
 
   frontend:
-    build: ./frontend
+    build: ../frontend
     container_name: crm_frontend
     restart: always
     ports:

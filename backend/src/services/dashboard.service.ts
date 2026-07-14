@@ -3,6 +3,15 @@ import { prisma } from "../lib/prisma";
 import { RequestUser, tenantFilter } from "../lib/access";
 import type { Prisma } from "@prisma/client";
 
+const stageProbability: Record<DealStage, number> = {
+  [DealStage.NEW]: 0.1,
+  [DealStage.QUALIFIED]: 0.3,
+  [DealStage.PROPOSAL]: 0.5,
+  [DealStage.NEGOTIATION]: 0.75,
+  [DealStage.WON]: 1,
+  [DealStage.LOST]: 0,
+};
+
 export async function getDashboardStats(user?: RequestUser) {
   const leadWhere = tenantFilter<Prisma.LeadWhereInput>(user);
   const dealWhere = tenantFilter<Prisma.DealWhereInput>(user);
@@ -15,7 +24,7 @@ export async function getDashboardStats(user?: RequestUser) {
     wonDealsCount,
     lostDeals,
     tasksDueToday,
-    revenueForecast,
+    dealsForForecast,
     salesFunnel,
     leadSources,
     wonDealsForRevenue,
@@ -53,16 +62,14 @@ export async function getDashboardStats(user?: RequestUser) {
       },
     }),
 
-    prisma.deal.aggregate({
+    prisma.deal.findMany({
       where: {
         ...dealWhere,
         stage: {
           not: DealStage.LOST,
         },
       },
-      _sum: {
-        value: true,
-      },
+      select: { value: true, stage: true },
     }),
 
     prisma.lead.groupBy({
@@ -97,17 +104,33 @@ export async function getDashboardStats(user?: RequestUser) {
     }),
   ]);
 
-  const revenueByMonth = wonDealsForRevenue.reduce<Record<string, number>>(
-    (acc, deal) => {
-      const month = deal.closeDate!.toLocaleString("en-US", {
-        month: "short",
-      });
+  const revenueByMonth = wonDealsForRevenue.reduce<
+    Record<string, { month: string; revenue: number; sortDate: number }>
+  >((acc, deal) => {
+    const closeDate = deal.closeDate!;
+    const year = closeDate.getUTCFullYear();
+    const monthIndex = closeDate.getUTCMonth();
+    const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
 
-      acc[month] = (acc[month] || 0) + Number(deal.value);
-      return acc;
-    },
-    {}
-  );
+    if (!acc[key]) {
+      acc[key] = {
+        month: new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          year: "numeric",
+          timeZone: "UTC",
+        }).format(closeDate),
+        revenue: 0,
+        sortDate: Date.UTC(year, monthIndex, 1),
+      };
+    }
+
+    acc[key].revenue += Number(deal.value);
+    return acc;
+  }, {});
+
+  const revenueForecast = dealsForForecast.reduce((sum, deal) => {
+    return sum + Number(deal.value) * stageProbability[deal.stage];
+  }, 0);
 
   const teamPerformance = users.map((user) => {
     const completedTasks = user.tasks.filter(
@@ -129,17 +152,19 @@ export async function getDashboardStats(user?: RequestUser) {
     wonDeals: wonDealsCount,
     lostDeals,
     tasksDueToday,
-    revenueForecast: Number(revenueForecast._sum.value || 0),
+    revenueForecast,
 
     salesFunnel: salesFunnel.map((item) => ({
       name: item.status,
       value: item._count._all,
     })),
 
-    revenueByMonth: Object.entries(revenueByMonth).map(([month, revenue]) => ({
-      month,
-      revenue,
-    })),
+    revenueByMonth: Object.values(revenueByMonth)
+      .sort((a, b) => a.sortDate - b.sortDate)
+      .map(({ month, revenue }) => ({
+        month,
+        revenue,
+      })),
 
     leadSources: leadSources.map((item) => ({
       name: item.source || "Unknown",

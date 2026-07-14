@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as DealService from "../services/deal.service";
 
 export async function getDeals(req: Request, res: Response): Promise<void> {
@@ -8,8 +9,8 @@ export async function getDeals(req: Request, res: Response): Promise<void> {
 
     const deals = await DealService.getDeals(search, req.user);
     res.json(deals);
-  } catch {
-    res.status(500).json({ message: "Failed to get deals" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get deals");
   }
 }
 
@@ -26,8 +27,8 @@ export async function getDealById(
     }
 
     res.json(deal);
-  } catch {
-    res.status(500).json({ message: "Failed to get deal" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get deal");
   }
 }
 
@@ -48,8 +49,8 @@ export async function createDeal(req: Request, res: Response): Promise<void> {
       message: "Deal created successfully",
       deal,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to create deal" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to create deal");
   }
 }
 
@@ -71,8 +72,8 @@ export async function updateDeal(
       message: "Deal updated successfully",
       deal,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to update deal" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to update deal");
   }
 }
 
@@ -90,7 +91,7 @@ export async function deleteDeal(
 
     await DealService.deleteDeal(req.params.id);
     res.json({ message: "Deal deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete deal" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to delete deal");
   }
 }

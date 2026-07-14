@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as UserService from "../services/user.service";
 
 export async function getUsers(req: Request, res: Response): Promise<void> {
   try {
     const users = await UserService.getUsers(req.user);
     res.json(users);
-  } catch {
-    res.status(500).json({ message: "Failed to get users" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get users");
   }
 }
 
@@ -17,8 +18,8 @@ export async function getAssignableUsers(
   try {
     const users = await UserService.getAssignableUsers(req.user);
     res.json(users);
-  } catch {
-    res.status(500).json({ message: "Failed to get assignable users" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get assignable users");
   }
 }
 
@@ -31,12 +32,10 @@ export async function createUser(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const user = await UserService.createUser(req.body);
+    const user = await UserService.createUser(req.body, req.user);
     res.status(201).json({ message: "User created successfully", user });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to create user";
-    res.status(500).json({ message });
+    handleControllerError(error, req, res, "Failed to create user");
   }
 }
 
@@ -47,8 +46,8 @@ export async function updateUser(
   try {
     const user = await UserService.updateUser(req.params.id, req.body);
     res.json({ message: "User updated successfully", user });
-  } catch {
-    res.status(500).json({ message: "Failed to update user" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to update user");
   }
 }
 
@@ -57,9 +56,9 @@ export async function deleteUser(
   res: Response
 ): Promise<void> {
   try {
-    await UserService.deleteUser(req.params.id);
+    await UserService.deleteUser(req.params.id, req.user);
     res.json({ message: "User deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete user" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to delete user");
   }
 }

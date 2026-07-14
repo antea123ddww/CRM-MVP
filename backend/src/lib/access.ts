@@ -16,5 +16,17 @@ export function currentUserId(user?: RequestUser) {
 }
 
 export function tenantFilter<T extends object>(user?: RequestUser) {
-  return user?.tenantId ? ({ tenantId: user.tenantId } as T) : {};
+  return {
+    tenantId: user?.tenantId
+      ? user.tenantId
+      : { equals: "__tenant_required__" },
+  } as T;
+}
+
+export function requireTenantId(user?: RequestUser) {
+  if (!user?.tenantId) {
+    throw new Error("Tenant is required");
+  }
+
+  return user.tenantId;
 }

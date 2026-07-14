@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as NoteService from "../services/note.service";
 
 export async function getNotes(req: Request, res: Response): Promise<void> {
   try {
     const notes = await NoteService.getNotes(req.user);
     res.json(notes);
-  } catch {
-    res.status(500).json({ message: "Failed to get notes" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get notes");
   }
 }
 
@@ -25,8 +26,8 @@ export async function createNote(req: Request, res: Response): Promise<void> {
       message: "Note created successfully",
       note,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to create note" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to create note");
   }
 }
 
@@ -44,8 +45,8 @@ export async function updateNote(
 
     const note = await NoteService.updateNote(req.params.id, { content });
     res.json({ message: "Note updated successfully", note });
-  } catch {
-    res.status(500).json({ message: "Failed to update note" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to update note");
   }
 }
 
@@ -56,7 +57,7 @@ export async function deleteNote(
   try {
     await NoteService.deleteNote(req.params.id);
     res.json({ message: "Note deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete note" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to delete note");
   }
 }

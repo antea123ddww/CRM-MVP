@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Role } from "@prisma/client";
 import { prisma } from "../lib/prisma";
+import { handleControllerError } from "../lib/http-error";
 import crypto from "crypto";
 
 const RESET_RESPONSE =
@@ -90,7 +91,7 @@ async function deliverResetLink(email: string, resetToken: string) {
       throw new Error(error);
     }
 
-    console.info(`Password reset email sent to ${email}`);
+    console.info("Password reset email sent.");
     return;
   }
 
@@ -123,7 +124,7 @@ function setSecurityCookies(
 
 export async function register(req: Request, res: Response) {
   try {
-    const { firstName, lastName, email, password, role, tenantId } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -145,8 +146,7 @@ export async function register(req: Request, res: Response) {
         lastName,
         email,
         password: hashedPassword,
-        role: role || Role.SALES,
-        tenantId,
+        role: Role.SALES,
       },
       select: {
         id: true,
@@ -163,8 +163,8 @@ export async function register(req: Request, res: Response) {
       message: "User registered successfully",
       user,
     });
-  } catch {
-    return res.status(500).json({ message: "Register failed" });
+  } catch (error) {
+    return handleControllerError(error, req, res, "Register failed");
   }
 }
 
@@ -175,7 +175,6 @@ export async function login(req: Request, res: Response) {
     const user = await prisma.user.findUnique({
       where: { email },
     });
-console.log("USER FOUND:", user ? user.email : "NO USER FOUND");
     if (!user || user.status !== "ACTIVE") {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -212,8 +211,8 @@ console.log("USER FOUND:", user ? user.email : "NO USER FOUND");
         tenantId: user.tenantId,
       },
     });
-  } catch {
-    return res.status(500).json({ message: "Login failed" });
+  } catch (error) {
+    return handleControllerError(error, req, res, "Login failed");
   }
 }
 
@@ -265,10 +264,8 @@ export async function refresh(req: Request, res: Response) {
       token,
       csrfToken: nextCsrfToken,
     });
-  } catch {
-    return res.status(500).json({
-      message: "Refresh token failed",
-    });
+  } catch (error) {
+    return handleControllerError(error, req, res, "Refresh token failed");
   }
 }
 
@@ -291,10 +288,8 @@ export async function logout(req: Request, res: Response) {
     return res.json({
       message: "Logout successful",
     });
-  } catch {
-    return res.status(500).json({
-      message: "Logout failed",
-    });
+  } catch (error) {
+    return handleControllerError(error, req, res, "Logout failed");
   }
 }
 
@@ -317,16 +312,14 @@ export async function me(req: Request, res: Response) {
     });
 
     return res.json(user);
-  } catch {
-    return res.status(500).json({ message: "Failed to get user" });
+  } catch (error) {
+    return handleControllerError(error, req, res, "Failed to get user");
   }
 }
 
 export async function forgotPassword(req: Request, res: Response) {
-  console.log("FORGOT PASSWORD FUNCTION HIT");
   try {
     const { email } = req.body;
-console.log("FORGOT EMAIL:", email);
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
@@ -357,8 +350,15 @@ console.log("FORGOT EMAIL:", email);
       message: RESET_RESPONSE,
     });
   } catch (error) {
-    console.error("Forgot password error:", error);
-    return res.status(500).json({ message: "Forgot password failed" });
+    console.error("Password reset request failed", {
+      method: req.method,
+      path: req.originalUrl,
+      error,
+    });
+
+    return res.json({
+      message: RESET_RESPONSE,
+    });
   }
 }
 
@@ -415,8 +415,8 @@ export async function resetPassword(req: Request, res: Response) {
     return res.json({
       message: "Password reset successfully",
     });
-  } catch {
-    return res.status(500).json({ message: "Reset password failed" });
+  } catch (error) {
+    return handleControllerError(error, req, res, "Reset password failed");
   }
 }
 

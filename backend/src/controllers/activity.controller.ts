@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as ActivityService from "../services/activity.service";
 
 export async function getActivities(req: Request, res: Response): Promise<void> {
   try {
     const activities = await ActivityService.getActivities(req.user);
     res.json(activities);
-  } catch {
-    res.status(500).json({ message: "Failed to get activities" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get activities");
   }
 }
 
@@ -25,8 +26,8 @@ export async function createActivity(req: Request, res: Response): Promise<void>
       message: "Activity created successfully",
       activity,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to create activity" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to create activity");
   }
 }
 
@@ -48,8 +49,8 @@ export async function updateActivity(
       message: "Activity updated successfully",
       activity,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to update activity" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to update activity");
   }
 }
 
@@ -60,7 +61,7 @@ export async function deleteActivity(
   try {
     await ActivityService.deleteActivity(req.params.id);
     res.json({ message: "Activity deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete activity" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to delete activity");
   }
 }

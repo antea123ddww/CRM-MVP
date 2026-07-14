@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as TeamPerformanceService from "../services/team-performance.service";
 
 export async function getTeamPerformance(
@@ -11,9 +12,7 @@ export async function getTeamPerformance(
     );
 
     res.json(performance);
-  } catch {
-    res.status(500).json({
-      message: "Failed to get team performance",
-    });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get team performance");
   }
 }

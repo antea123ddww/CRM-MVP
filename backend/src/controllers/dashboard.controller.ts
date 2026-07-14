@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as DashboardService from "../services/dashboard.service";
 
 export async function getDashboardStats(
@@ -9,9 +10,7 @@ export async function getDashboardStats(
     const stats = await DashboardService.getDashboardStats(req.user);
 
     res.json(stats);
-  } catch {
-    res.status(500).json({
-      message: "Failed to get dashboard stats",
-    });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get dashboard stats");
   }
 }

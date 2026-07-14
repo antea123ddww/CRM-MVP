@@ -57,7 +57,6 @@ async function seedAdminUser(tenantId) {
       tenantId,
     },
     update: {
-      password: hashedPassword,
       role: Role.ADMIN,
       status: UserStatus.ACTIVE,
       tenantId,
@@ -104,13 +103,13 @@ async function seedPipelineStages() {
 
 async function main() {
   const tenant = await seedDefaultTenant();
-  const adminEmail = await seedAdminUser(tenant.id);
+  await seedAdminUser(tenant.id);
   await seedPipelineStages();
   await seedSettings(tenant.id);
 
   console.log("Seed completed safely.");
   console.log(`Default tenant ensured: ${tenant.slug}`);
-  console.log(`Default admin ensured: ${adminEmail}`);
+  console.log("Default admin ensured.");
 }
 
 main()

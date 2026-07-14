@@ -36,6 +36,16 @@ type Reports = {
   userProductivityReport: { totalUsers: number };
 };
 
+function escapeCSVCell(value: string | number) {
+  const cell = String(value);
+
+  if (!/[",\r\n]/.test(cell)) {
+    return cell;
+  }
+
+  return `"${cell.replace(/"/g, '""')}"`;
+}
+
 export default function ReportsPage() {
   const [reports, setReports] = useState<Reports | null>(null);
 
@@ -61,7 +71,7 @@ export default function ReportsPage() {
 
   function exportCSV() {
     const csv = [["Report", "Metric", "Value"], ...rows]
-      .map((row) => row.join(","))
+      .map((row) => row.map(escapeCSVCell).join(","))
       .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });

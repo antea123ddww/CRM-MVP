@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import contactRoutes from "./modules/contact/contact.routes";
+import contactRoutes from "./routes/contact.routes";
 import leadRoutes from "./routes/lead.routes";
 import dealRoutes from "./routes/deal.routes";
 import taskRoutes from "./routes/task.routes";

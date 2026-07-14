@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import * as ContactService from "./contact.service";
+import { handleControllerError } from "../lib/http-error";
+import * as ContactService from "../services/contact.service";
 
 export const getContacts = async (
   req: Request,
@@ -13,8 +14,7 @@ export const getContacts = async (
 
     res.status(200).json(contacts);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to get contacts" });
+    handleControllerError(error, req, res, "Failed to get contacts");
   }
 };
 
@@ -35,8 +35,7 @@ export const getContactById = async (
 
     res.status(200).json(contact);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to get contact" });
+    handleControllerError(error, req, res, "Failed to get contact");
   }
 };
 
@@ -54,15 +53,14 @@ export const createContact = async (
       return;
     }
 
-    const contact = await ContactService.createContact(req.body);
+    const contact = await ContactService.createContact(req.body, req.user);
 
     res.status(201).json({
       message: "Contact created successfully",
       contact,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to create contact" });
+    handleControllerError(error, req, res, "Failed to create contact");
   }
 };
 
@@ -91,8 +89,7 @@ export const updateContact = async (
       contact,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to update contact" });
+    handleControllerError(error, req, res, "Failed to update contact");
   }
 };
 
@@ -117,7 +114,6 @@ export const deleteContact = async (
       message: "Contact deleted successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to delete contact" });
+    handleControllerError(error, req, res, "Failed to delete contact");
   }
 };

@@ -38,18 +38,42 @@ type Task = {
 
 const activeStatuses = ["OPEN", "IN_PROGRESS"];
 
-function dateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function dateKey(value: string | Date) {
+  if (typeof value === "string") {
+    return value.slice(0, 10);
+  }
+
+  return localDateKey(value);
+}
+
+function dateFromKey(key: string) {
+  const [year, month, day] = key.split("-").map(Number);
+
+  return new Date(year, month - 1, day);
 }
 
 function daysFromToday(dueDate?: string) {
   if (!dueDate) return null;
 
-  const today = new Date(dateKey(new Date()));
-  const due = new Date(dateKey(new Date(dueDate)));
+  const today = dateFromKey(localDateKey(new Date()));
+  const due = dateFromKey(dateKey(dueDate));
   const diff = due.getTime() - today.getTime();
 
   return Math.round(diff / (1000 * 60 * 60 * 24));
+}
+
+function isOverdue(dueDate?: string) {
+  const days = daysFromToday(dueDate);
+
+  return days !== null && days < 0;
 }
 
 function reminderDate(task: Task) {
@@ -110,8 +134,8 @@ export default function TasksPage() {
       .filter((task) => reminderDate(task))
       .sort((first, second) => {
         return (
-          new Date(reminderDate(first) || "").getTime() -
-          new Date(reminderDate(second) || "").getTime()
+          dateFromKey(dateKey(reminderDate(first) || "")).getTime() -
+          dateFromKey(dateKey(reminderDate(second) || "")).getTime()
         );
       });
 
@@ -251,8 +275,8 @@ export default function TasksPage() {
   function dueLabel(dueDate?: string) {
     if (!dueDate) return "-";
 
-    const todayKey = dateKey(new Date());
-    const dueKey = dateKey(new Date(dueDate));
+    const todayKey = localDateKey(new Date());
+    const dueKey = dateKey(dueDate);
 
     if (dueKey < todayKey) return `Overdue (${dueKey})`;
     if (dueKey === todayKey) return `Due today (${dueKey})`;
@@ -353,8 +377,7 @@ export default function TasksPage() {
                 </div>
                 <p
                   className={`text-sm font-semibold ${
-                    daysFromToday(reminderDate(task)) !== null &&
-                    daysFromToday(reminderDate(task))! < 0
+                    isOverdue(reminderDate(task))
                       ? "text-red-600"
                       : "text-slate-700"
                   }`}
@@ -517,9 +540,7 @@ export default function TasksPage() {
                     </TableCell>
                     <TableCell
                       className={
-                        task.dueDate &&
-                        task.dueDate.slice(0, 10) <
-                          new Date().toISOString().slice(0, 10)
+                        isOverdue(task.dueDate)
                           ? "font-semibold text-red-600"
                           : ""
                       }

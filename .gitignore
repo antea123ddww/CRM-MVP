@@ -23,6 +23,28 @@ frontend/.env.local
 .env
 .env.*
 !.env.example
+!.env*.example
+
+# ==========================
+# Secrets / credentials
+# ==========================
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+*secret*
+*secrets*
+*credential*
+*credentials*
+service-account*.json
+firebase-adminsdk*.json
+google-application-credentials*.json
+!.env.example
+!.env*.example
 
 # ==========================
 # Logs

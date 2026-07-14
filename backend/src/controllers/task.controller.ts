@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { handleControllerError } from "../lib/http-error";
 import * as TaskService from "../services/task.service";
 
 export async function getTasks(req: Request, res: Response): Promise<void> {
@@ -8,8 +9,8 @@ export async function getTasks(req: Request, res: Response): Promise<void> {
 
     const tasks = await TaskService.getTasks(search, req.user);
     res.json(tasks);
-  } catch {
-    res.status(500).json({ message: "Failed to get tasks" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get tasks");
   }
 }
 
@@ -26,8 +27,8 @@ export async function getTaskById(
     }
 
     res.json(task);
-  } catch {
-    res.status(500).json({ message: "Failed to get task" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to get task");
   }
 }
 
@@ -46,8 +47,8 @@ export async function createTask(req: Request, res: Response): Promise<void> {
       message: "Task created successfully",
       task,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to create task" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to create task");
   }
 }
 
@@ -69,8 +70,8 @@ export async function updateTask(
       message: "Task updated successfully",
       task,
     });
-  } catch {
-    res.status(500).json({ message: "Failed to update task" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to update task");
   }
 }
 
@@ -88,7 +89,7 @@ export async function deleteTask(
 
     await TaskService.deleteTask(req.params.id);
     res.json({ message: "Task deleted successfully" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete task" });
+  } catch (error) {
+    handleControllerError(error, req, res, "Failed to delete task");
   }
 }
